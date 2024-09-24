@@ -4,8 +4,12 @@ from tug.data import StudyPlanBuilder
 
 curriculum_url = "<curriculum_url>"
 
-driver = webdriver.Firefox()
-driver.get(tug_url)
+# TODO:
+#  - get ects
+#  - maybe -> already save courses when found => dont double iterate through data
+#  - maybe link to course
+#  - postprocessing
+#  - notion integration
 
 if __name__ == '__main__':
     start_time = datetime.datetime.now()

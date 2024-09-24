@@ -1,16 +1,18 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
+import datetime
 
-tug_url = "https://online.tugraz.at/tug_online/wbstpcs.showSpoTree?pSJNr=1685&pStpKnotenNr=&pStpStpNr=867&pFilterType=1&pPageNr=&pStartSemester=W"
+from tug.data import StudyPlanBuilder
+
+curriculum_url = "<curriculum_url>"
 
 driver = webdriver.Firefox()
 driver.get(tug_url)
 
-elem = driver.find_elements(By.CSS_SELECTOR, "span.KnotenText")
+if __name__ == '__main__':
+    start_time = datetime.datetime.now()
 
-print([e.text for e in elem])
+    root = StudyPlanBuilder.create(curriculum_url)
 
-input()
+    with open("result.json", "w", encoding='utf-8') as file:
+        file.write(root.model_dump_json())
 
-driver.close()
+    print(f"Execution took: {datetime.datetime.now() - start_time}")

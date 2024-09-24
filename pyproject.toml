@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "tug2notion"
+version = "0.1.0"
+description = ""
+authors = ["Tobias Gaisberger <gaisberger.tobias@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+selenium = "^4.25.0"
+beautifulsoup4 = "^4.12.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

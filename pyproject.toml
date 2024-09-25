@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.9"
 selenium = "^4.25.0"
 beautifulsoup4 = "^4.12.3"
+requests = "^2.32.3"
+python-dotenv = "^1.0.1"
 
 
 [tool.poetry.group.dev.dependencies]

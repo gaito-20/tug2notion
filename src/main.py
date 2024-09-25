@@ -1,19 +1,18 @@
 import datetime
-from typing import List, Any, Optional
+import json
+import os
+from dotenv import load_dotenv
 
+from typing import List, Optional
 from pydantic import BaseModel
 
+from notion.client import NotionClient
 from tug.data import StudyPlanBuilder, LVSubscriber, LV
 
-curriculum_url = "https://online.tugraz.at/tug_online/wbstpcs.showSpoTree?pSJNr=1685&pStpKnotenNr=&pStpStpNr=867&pFilterType=1&pPageNr=&pStartSemester=W"
+load_dotenv()
 
-
-# TODO:
-#  - notion integration
-
-class LVPrinter(LVSubscriber):
-    def update(self, lv: LV):
-        print(lv.model_dump_json())
+curriculum_url = os.getenv('CURRICULUM_URL')
+notion_api_key = os.getenv('NOTION_SECRET')
 
 
 class StudyPlan(LVSubscriber, BaseModel):
@@ -37,11 +36,10 @@ if __name__ == '__main__':
     start_time = datetime.datetime.now()
 
     courses = StudyPlan()
-
-    with StudyPlanBuilder(subscribers=[LVPrinter(), courses], exclude=exclude_nodes) as builder:
+    with StudyPlanBuilder(subscribers=[courses], exclude=exclude_nodes) as builder:
         study_plan = builder.create(curriculum_url)
 
-    with open("result.json", "w", encoding='utf-8') as file:
-        file.write(courses.model_dump_json())
+    client = NotionClient(notion_api_key)
+    client.import_study_plan(title=study_plan.text, lvs=courses.lvs)
 
     print(f"Execution took: {datetime.datetime.now() - start_time}")

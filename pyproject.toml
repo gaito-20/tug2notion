@@ -8,13 +8,10 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.9"
 selenium = "^4.25.0"
-beautifulsoup4 = "^4.12.3"
 requests = "^2.32.3"
 python-dotenv = "^1.0.1"
-
-
-[tool.poetry.group.dev.dependencies]
 pydantic = "^2.9.2"
+
 
 [build-system]
 requires = ["poetry-core"]

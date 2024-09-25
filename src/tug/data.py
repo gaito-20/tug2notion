@@ -27,13 +27,30 @@ class Knoten(Node):
 class LV(Node):
     nummer: str
     titel: str
-    semester: str
+    semester: List[str]
     typ: str
     ects: str
     sst: str
     vortragende: str
     link: str
-    modul: str
+    module: List[str]
+
+    def extend(self, other: 'LV'):
+        """Merge two lv objects that represent the same course"""
+        if self.nummer == other.nummer:
+            # the same LV could be offered in different semesters
+            self.semester.sort()
+            self.module.sort()
+            other.semester.sort()
+            other.module.sort()
+            if self.semester != other.semester:
+                self.semester.extend(other.semester)
+                self.semester = list(dict.fromkeys(self.semester))
+            # the same LV could be within different modules in a study
+            if self.module != other.semester:
+                self.module.extend(other.module)
+                self.module = list(dict.fromkeys(self.module))
+            return
 
 
 class LVSubscriber(ABC):
@@ -45,13 +62,14 @@ class LVSubscriber(ABC):
 
 class StudyPlanBuilder:
 
-    def __init__(self, timeout=2, subscribers: List[LVSubscriber] = []):
+    def __init__(self, timeout=2, subscribers: List[LVSubscriber] = [], exclude: List[str] = []):
         try:
             self.driver = webdriver.Firefox()
         except Exception:
             self.driver = webdriver.Chrome()
         self.wait = WebDriverWait(self.driver, timeout)
         self.subscribers = subscribers
+        self.exclude = exclude
 
     def __enter__(self):
         return self
@@ -63,11 +81,24 @@ class StudyPlanBuilder:
         for subscriber in self.subscribers:
             subscriber.update(lv)
 
-    def __from_webelement(self, webelement: WebElement, parent: Optional[Knoten] = None) -> 'Knoten':
+    def __from_webelement(self, webelement: WebElement, parent: Optional[Knoten] = None) -> Optional[Knoten]:
         """ Get 'Knoten' infos from the <tr> webelement"""
 
         # Get id
         _id = webelement.get_property("id")
+
+        # Get Knoten text and category
+        try:
+            title_span = webelement.find_element(By.CSS_SELECTOR, 'span.KnotenText')
+            _text = title_span.text
+            _category = title_span.get_attribute("title")
+        except NoSuchElementException:
+            _text = webelement.text
+            _category = ""
+
+        for exclude_elem in self.exclude:
+            if exclude_elem in _text:
+                return None
 
         columns = webelement.find_elements(By.CSS_SELECTOR, "td>div>span")
         # Get empf_semester
@@ -81,15 +112,6 @@ class StudyPlanBuilder:
         # Get sst
         sst_text = columns[4].text
         _sst = sst_text if len(ects_text) > 0 else None
-
-        # Get Knoten text and category
-        try:
-            title_span = webelement.find_element(By.CSS_SELECTOR, 'span.KnotenText')
-            _text = title_span.text
-            _category = title_span.get_attribute("title")
-        except NoSuchElementException:
-            _text = webelement.text
-            _category = ""
 
         # Open Knoten by clicking on them
         elems = webelement.parent.find_elements(By.CSS_SELECTOR, f".{_id}.hi")
@@ -118,10 +140,12 @@ class StudyPlanBuilder:
                     nummer, semester, sst, typ, titel = str(lv_a.text).split(maxsplit=4)
 
                     tmp = knoten
-                    modul = ""
+                    module = []
                     while tmp is not None:
                         if "Modulknoten" in tmp.category:
-                            modul = tmp.text.split("]", maxsplit=1)[1].strip().split(maxsplit=1)[1]     # Removes title from "[###] ## title"
+                            modultitel = tmp.text.split("]", maxsplit=1)[1].strip().split(maxsplit=1)[
+                                1]  # Removes title from "[###] ## title"
+                            module.append(modultitel)
                             break
                         else:
                             tmp = tmp.parent
@@ -129,14 +153,14 @@ class StudyPlanBuilder:
                     lv = LV(
                         nummer=nummer,
                         titel=titel,
-                        semester="Wintersemester" if "W" in semester.upper() else "Sommersemester",
+                        semester=["Wintersemester" if "W" in semester.upper() else "Sommersemester"],
                         typ=typ,
                         ects=_ects,
                         sst=sst.removesuffix("SSt"),
                         vortragende=lv_fields[2].text,
                         link=lv_a.get_attribute("href"),
                         parent=knoten,
-                        modul=modul
+                        module=module
                     )
 
                     _children.append(lv)
@@ -146,10 +170,13 @@ class StudyPlanBuilder:
                     pass
         except TimeoutException:
             # If there's an exception, that means that this is still a Knoten with more children
-            _children = [self.__from_webelement(webelement=elem, parent=knoten)
-                         for elem
-                         in filter(lambda elem: 'GHK' not in elem.get_property("id"), elems)]
+            _children = list(filter(lambda x: x is not None, [self.__from_webelement(webelement=elem, parent=knoten)
+                                                              for elem
+                                                              in
+                                                              filter(lambda elem: 'GHK' not in elem.get_property("id"),
+                                                                     elems)]))
         knoten.children = _children
+        self.exclude.append(knoten.text)  # dont crawl identical 'Knoten' multiple times
 
         return knoten
 

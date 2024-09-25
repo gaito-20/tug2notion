@@ -1,13 +1,14 @@
 import datetime
+from typing import List, Any, Optional
+
+from pydantic import BaseModel
 
 from tug.data import StudyPlanBuilder, LVSubscriber, LV
 
-curriculum_url = "<curriculum_url>"
+curriculum_url = "https://online.tugraz.at/tug_online/wbstpcs.showSpoTree?pSJNr=1685&pStpKnotenNr=&pStpStpNr=867&pFilterType=1&pPageNr=&pStartSemester=W"
 
 
 # TODO:
-#  - deducplication
-#  - skip unncessary courses (freifach, sprachen, softskills etc.)
 #  - notion integration
 
 class LVPrinter(LVSubscriber):
@@ -15,13 +16,32 @@ class LVPrinter(LVSubscriber):
         print(lv.model_dump_json())
 
 
+class StudyPlan(LVSubscriber, BaseModel):
+    lvs: List[LV] = []
+
+    def lookup_lv(self, lv) -> Optional[LV]:
+        if res := list(filter(lambda x: x.nummer == lv.nummer, self.lvs)):
+            return res[0]
+        return None
+
+    def update(self, lv: LV):
+        if existing_lv := self.lookup_lv(lv):
+            existing_lv.extend(lv)
+        else:
+            self.lvs.append(lv)
+
+
+exclude_nodes = ["Masterarbeit", "Freifach"]
+
 if __name__ == '__main__':
     start_time = datetime.datetime.now()
 
-    with StudyPlanBuilder(subscribers=[LVPrinter()]) as builder:
+    courses = StudyPlan()
+
+    with StudyPlanBuilder(subscribers=[LVPrinter(), courses], exclude=exclude_nodes) as builder:
         study_plan = builder.create(curriculum_url)
 
     with open("result.json", "w", encoding='utf-8') as file:
-        file.write(study_plan.model_dump_json())
+        file.write(courses.model_dump_json())
 
     print(f"Execution took: {datetime.datetime.now() - start_time}")

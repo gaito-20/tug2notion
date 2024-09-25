@@ -1,7 +1,6 @@
-from typing import List
-
 import requests
 
+from typing import List
 from tug.data import LV
 
 
@@ -24,7 +23,9 @@ class NotionClient:
             }
         }
         resp = requests.post('https://api.notion.com/v1/search', headers=self.headers, json=data)
-        return resp.json()["results"][0]["id"]
+        if resp.status_code == 200:
+            return resp.json()["results"][0]["id"]
+        raise Exception(resp.json())
 
     def create_database(self, page_id, study_title: str):
         """Creates a database within the given page."""
@@ -142,7 +143,9 @@ class NotionClient:
 
         }
         resp = requests.post('https://api.notion.com/v1/databases', headers=self.headers, json=data)
-        return resp.json()["id"]
+        if resp.status_code == 200:
+            return resp.json()["id"]
+        raise Exception(resp.json())
 
     def create_page(self, parent_id, lv: LV, parent_is_database: bool = False):
         data = {
@@ -171,13 +174,13 @@ class NotionClient:
                     }
                 },
                 "ECTS": {
-                    "number": float(lv.ects)
+                    "number": float(lv.ects.replace(",", "."))
                 },
                 "SSt": {
-                    "number": float(lv.sst)
+                    "number": float(lv.sst.replace(",", "."))
                 },
                 "Modul": {
-                    "multi_select": [{"name": modul} for modul in lv.module]
+                    "multi_select": [{"name": modul.replace(",", "")} for modul in lv.module]
                 },
                 "Vortragende": {
                     "rich_text": [{
@@ -192,7 +195,9 @@ class NotionClient:
             }
         }
         resp = requests.post("https://api.notion.com/v1/pages", headers=self.headers, json=data)
-        return resp.json()["id"]
+        if resp.status_code == 200:
+            return resp.json()["id"]
+        raise Exception(resp.json())
 
     def import_study_plan(self, title: str, lvs: List[LV]):
         page_id = self.search()

@@ -6,12 +6,13 @@ curriculum_url = "<curriculum_url>"
 
 
 # TODO:
-#  - module infos
+#  - deducplication
+#  - skip unncessary courses (freifach, sprachen, softskills etc.)
 #  - notion integration
 
 class LVPrinter(LVSubscriber):
     def update(self, lv: LV):
-        print(lv)
+        print(lv.model_dump_json())
 
 
 if __name__ == '__main__':

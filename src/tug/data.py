@@ -60,6 +60,21 @@ class LVSubscriber(ABC):
         pass
 
 
+class StudyPlan(LVSubscriber, BaseModel):
+    lvs: List[LV] = []
+
+    def lookup_lv(self, lv) -> Optional[LV]:
+        if res := list(filter(lambda x: x.nummer == lv.nummer, self.lvs)):
+            return res[0]
+        return None
+
+    def update(self, lv: LV):
+        if existing_lv := self.lookup_lv(lv):
+            existing_lv.extend(lv)
+        else:
+            self.lvs.append(lv)
+
+
 class StudyPlanBuilder:
 
     def __init__(self, timeout=2, subscribers: List[LVSubscriber] = [], exclude: List[str] = []):

@@ -38,19 +38,18 @@ class LV(Node):
     def extend(self, other: 'LV'):
         """Merge two lv objects that represent the same course"""
         if self.nummer == other.nummer:
-            # the same LV could be offered in different semesters
             self.semester.sort()
             self.module.sort()
             other.semester.sort()
             other.module.sort()
-            if self.semester != other.semester:
-                self.semester.extend(other.semester)
-                self.semester = list(dict.fromkeys(self.semester))
+
+            # the same LV could be offered in different semesters
+            self.semester.extend(other.semester)
+            self.semester = list(dict.fromkeys(self.semester))  # for deduplication
+
             # the same LV could be within different modules in a study
-            if self.module != other.semester:
-                self.module.extend(other.module)
-                self.module = list(dict.fromkeys(self.module))
-            return
+            self.module.extend(other.module)
+            self.module = list(dict.fromkeys(self.module))  # for deduplication
 
 
 class LVSubscriber(ABC):
